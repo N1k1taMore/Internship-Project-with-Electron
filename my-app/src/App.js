@@ -1,4 +1,6 @@
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { ToastContainer} from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
 import Admin from './components/Admin';
 import Home from './components/Home';
@@ -16,6 +18,7 @@ function App() {
         <Route path="/Userlogin" element={<Userlogin />} />
         <Route path="/MACAddressInput" element={< MACAddressInput/>}></Route>
       </Routes>
+      <ToastContainer />
     </Router>
   );
 }

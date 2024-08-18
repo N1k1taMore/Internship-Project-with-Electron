@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import {toast} from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import styled from 'styled-components';
 
 const Container = styled.div`
@@ -84,6 +86,9 @@ const MACAddressInput = () => {
 
   const startTracking = async () => {
     try {
+      if(macAddress==='') {
+      toast.error("MAC Address is required.")
+      return;}
       setIsLoading(true);
       const response = await axios.post('http://localhost:8000/api/startTracking', { macAddress });
       setTrackStatus(response.data.message);
