@@ -95,7 +95,7 @@ exports.getTracking = async (req, res) => {
     await client.connect();
 
     const database = client.db(macAddress);
-    const collection = database.collection('application_usage');
+    const collection = database.collection('process_details_' + macAddress);
 
     // Fetch data
     const data = await collection.find().toArray();
