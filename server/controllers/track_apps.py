@@ -9,6 +9,8 @@ from pymongo import MongoClient
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from sklearn.linear_model import LinearRegression
+from scapy.all import sniff, IP
+from browser_history import get_history
 import numpy as np
 
 # MongoDB connection
@@ -24,6 +26,46 @@ def get_running_processes():
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
             continue
     return running_processes
+
+def resolve_ip_to_host(ip_address):
+    """Resolve an IP address to a hostname."""
+    try:
+        return socket.gethostbyaddr(ip_address)[0]
+    except socket.herror:
+        return None
+
+def capture_network_requests(packet, mac_address):
+    """Capture network requests and store source and destination details in MongoDB."""
+    if IP in packet:
+        src_ip = packet[IP].src
+        dst_ip = packet[IP].dst
+
+        # Try to resolve IPs to hostnames (URLs)
+        src_url = resolve_ip_to_host(src_ip)
+        dst_url = resolve_ip_to_host(dst_ip)
+
+        print(f"Network request captured:")
+        print(f"Source IP: {src_ip} ({src_url if src_url else 'N/A'})")
+        print(f"Destination IP: {dst_ip} ({dst_url if dst_url else 'N/A'})")
+        print("-" * 40)
+
+        # Store the network request details in MongoDB
+        db = client[mac_address]
+        collection = db[f'network_requests_{mac_address}']
+        request_details = {
+            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'source_ip': src_ip,
+            'source_url': src_url if src_url else 'N/A',
+            'destination_ip': dst_ip,
+            'destination_url': dst_url if dst_url else 'N/A'
+        }
+        collection.insert_one(request_details)
+
+def start_network_capture(mac_address):
+    """Start capturing network requests."""
+    print("Starting network packet capture...")
+    sniff(filter="ip", prn=lambda x: capture_network_requests(x, mac_address), store=0)
+
 
 def collect_network_details(mac_address):
     """Collect and store network details in MongoDB."""
@@ -265,6 +307,92 @@ def monitor_with_ml(mac_address):
         if model:
             predict_failure(mac_address, model)
 
+
+def retrieve_browser_history(mac_address):
+    """Retrieve and store browser history details in MongoDB."""
+    start_time = datetime.now()
+    date_only = start_time.strftime('%Y-%m-%d')
+    db = client[mac_address]
+    collection = db[f'browser_history_{mac_address}']
+
+    # Clear any existing browser history data when the script starts
+    try:
+        collection.delete_many({})  # Delete all documents from the collection
+        print("Cleared old browser history.")
+    except Exception as e:
+        print(f"Error clearing old history: {e}")
+        return
+
+    # Get the browser history
+    try:
+        history = get_history()  # Assuming get_history is defined elsewhere
+    except Exception as e:
+        print(f"Error retrieving history: {e}")
+        return
+
+    if not history:
+        print("Failed to retrieve history.")
+        return
+
+    history_data = history.histories
+
+    # Debugging: Print the structure of history_data
+    print("Browser history data structure:", history_data)
+
+    if not history_data:
+        print("No browser history found.")
+        return
+
+    entries = []
+
+    # Function to validate entries (e.g., check for valid URL)
+    def is_valid_entry(entry):
+        """Check if the entry is valid."""
+        if isinstance(entry, tuple) and len(entry) >= 2:
+            timestamp, url, title = entry[:3]  # Extract only the first two elements (timestamp, url)
+            # Check if the URL is valid
+            if not isinstance(url, str) or not url.startswith('http'):
+                return False
+            return True
+        return False
+
+    # Iterate through the history data and filter out invalid entries
+    for entry in history_data:
+        print(f"Entry: {entry}")
+        if is_valid_entry(entry):
+            timestamp, url, title = entry[:3]  # Extract the timestamp and url
+            # Convert timestamp to a string in the desired format
+            timestamp_str = timestamp.strftime('%Y-%m-%d %H:%M:%S')
+            timestamp_dt = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
+            timestamp_date_only = timestamp_dt.strftime('%Y-%m-%d')
+            if timestamp_date_only >= date_only:
+                entry_data = {
+                    'timestamp': timestamp_str,
+                    'url': url,
+                    'title': title
+                }
+                entries.append(entry_data)
+            else:
+                print(f"Skipping invalid entry: {entry}")
+
+    # Insert only valid entries into the collection
+    if entries:
+        try:
+            print(f"Inserting {len(entries)} valid entries into the collection...")
+            result = collection.insert_many(entries)
+            print(f"Inserted {len(result.inserted_ids)} documents.")
+        except Exception as e:
+            print(f"An error occurred while inserting entries: {e}")
+    else:
+        print("No valid entries to insert.")
+
+    # Check if collection exists after insertion
+    if collection.count_documents({}) > 0:
+        print(f"Collection '{collection.name}' created successfully with {collection.count_documents({})} documents.")
+    else:
+        print(f"Collection '{collection.name}' is empty or not created.")
+
+
 class FileChangeHandler(FileSystemEventHandler):
     """Handle file system events."""
     def on_modified(self, event):
@@ -305,11 +433,23 @@ if __name__ == "__main__":
             monitor_with_ml(mac_address)
             time.sleep(10)
 
+    def monitor_network_requests():
+        while True:
+            start_network_capture(mac_address)
+            time.sleep(10)
+
+    def monitor_browser_history():
+        while True:
+            retrieve_browser_history(mac_address)
+            time.sleep(10)
+
     # Start threads for monitoring
     threading.Thread(target=monitor_network_details, daemon=True).start()
     threading.Thread(target=monitor_connected_devices, daemon=True).start()
     threading.Thread(target=monitor_application_usage, daemon=True).start()
     threading.Thread(target=monitor_machine_learning, daemon=True).start()
+    threading.Thread(target=monitor_network_requests, daemon=True).start()
+    threading.Thread(target=monitor_browser_history, daemon=True).start()
 
     # Set up file system monitoring
     path_to_watch = "."  # Monitor the current directory
