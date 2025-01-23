@@ -34,7 +34,10 @@ function App() {
         <Route path="/view-graphs" element={<ViewGraphs />} />
       </Routes>
       <ToastContainer />
+<<<<<<< HEAD
       <Footer></Footer>
+=======
+>>>>>>> 6f3a9bda2f19b3dabe81365e6f56ecc153e501cf
     </Router>
   );
 }

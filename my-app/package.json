@@ -13,7 +13,11 @@
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.22.3",
     "react-scripts": "5.0.1",
+<<<<<<< HEAD
     "react-toastify": "^11.0.2",
+=======
+    "react-toastify": "^10.0.5",
+>>>>>>> 6f3a9bda2f19b3dabe81365e6f56ecc153e501cf
     "react-use": "^17.5.0",
     "styled-components": "^6.1.8",
     "typewriter-effect": "^2.21.0",
