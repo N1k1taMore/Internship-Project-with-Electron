@@ -37,7 +37,7 @@ const TypeWriterText = () => {
   return (
     <>
     <Title>
-       Welcome To APP INSIGHT
+       Welcome To ELECTRON EYE
         <Typewriter options={
             {
                 autoStart: true,

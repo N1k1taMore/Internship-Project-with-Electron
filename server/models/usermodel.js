@@ -9,7 +9,13 @@ const userSchema=new mongoose.Schema({
     password: {
         type: String,
         required: true,
+    },
+    labId:{
+        type: String,
+        required: true,
+        unique: true,
     }
+
 });
 
 const usermodel = mongoose.model("User", userSchema);

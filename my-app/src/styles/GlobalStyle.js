@@ -1,4 +1,4 @@
-import { createGlobalStyle } from "styled-components";
+import { createGlobalStyle } from 'styled-components';
 import '@fontsource/akaya-telivigala';
 // Supports weights 100-800
 import '@fontsource-variable/sora';
@@ -7,6 +7,7 @@ const GlobalStyles = createGlobalStyle`
 *,*::beforeAll,*::after{
     margin:0;
     padding:0;
+    text-decoration:none;
 }
 
 body{
@@ -22,6 +23,6 @@ a{
     color:inherit;
     text-decoration:none;
 }
-`
+`;
 
 export default GlobalStyles;

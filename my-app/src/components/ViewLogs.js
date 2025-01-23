@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import {toast} from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import styled from 'styled-components';
 
@@ -74,7 +74,7 @@ const NoData = styled.div`
   color: #555;
 `;
 
-const MACAddressInput = () => {
+const ViewLogs = () => {
   const [macAddress, setMacAddress] = useState('');
   const [isTracking, setIsTracking] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -86,11 +86,15 @@ const MACAddressInput = () => {
 
   const startTracking = async () => {
     try {
-      if(macAddress==='') {
-      toast.error("MAC Address is required.")
-      return;}
+      if (macAddress === '') {
+        toast.error('MAC Address is required.');
+        return;
+      }
       setIsLoading(true);
-      const response = await axios.post('http://localhost:8000/api/startTracking', { macAddress });
+      const response = await axios.post(
+        'http://localhost:8000/api/startTracking',
+        { macAddress }
+      );
       setTrackStatus(response.data.message);
       setIsTracking(true);
       setIsLoading(false);
@@ -102,9 +106,12 @@ const MACAddressInput = () => {
 
   const getTracking = async () => {
     try {
-      const trackingResponse = await axios.post('http://localhost:8000/api/getTracking', {
-        macAddress: macAddress,
-      });
+      const trackingResponse = await axios.post(
+        'http://localhost:8000/api/getTracking',
+        {
+          macAddress: macAddress,
+        }
+      );
 
       setTrackStatus(trackingResponse.data);
       setIsTracking(true);
@@ -118,7 +125,9 @@ const MACAddressInput = () => {
   const stopTracking = async () => {
     try {
       setIsLoading(true);
-      const response = await axios.post('http://localhost:8000/api/stopTracking');
+      const response = await axios.post(
+        'http://localhost:8000/api/stopTracking'
+      );
       setTrackStatus(response.data.message);
       setIsTracking(false);
       setIsLoading(false);
@@ -131,7 +140,12 @@ const MACAddressInput = () => {
   return (
     <Container>
       <FormContainer>
-        <Input type="text" value={macAddress} onChange={handleInputChange} placeholder="Enter MAC address" />
+        <Input
+          type="text"
+          value={macAddress}
+          onChange={handleInputChange}
+          placeholder="Enter MAC address"
+        />
         {!isTracking ? (
           <Button onClick={startTracking}>Start Tracking</Button>
         ) : (
@@ -175,4 +189,4 @@ const MACAddressInput = () => {
   );
 };
 
-export default MACAddressInput;
+export default ViewLogs;
